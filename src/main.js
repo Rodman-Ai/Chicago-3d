@@ -3,15 +3,19 @@ import {
   CENTER_LAT, CENTER_LON, OSM_BBOX, PLAYER_EYE,
   MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON,
 } from './config.js';
-import { createScene } from './scene.js';
-import { createProjection } from './geo.js';
-import { fetchCityData } from './osm.js';
-import { buildCity } from './buildings.js';
-import { buildGrid } from './collision.js';
-import { buildStreetLabels } from './streets.js';
-import { buildRoads } from './roads.js';
-import { buildTrees } from './trees.js';
-import { PlayerController } from './player.js';
+import { createScene }        from './scene.js';
+import { createProjection }   from './geo.js';
+import { fetchCityData }      from './osm.js';
+import { buildCity }          from './buildings.js';
+import { buildGrid }          from './collision.js';
+import { buildStreetLabels }  from './streets.js';
+import { buildRoads }         from './roads.js';
+import { buildTrees }         from './trees.js';
+import { createDayNight }     from './daynight.js';
+import { createMinimap }      from './minimap.js';
+import { createLandmarks }    from './landmarks.js';
+import { updateAudio }        from './audio.js';
+import { PlayerController }   from './player.js';
 import {
   showLoading, hideLoading, setLoadingText,
   setLoadingProgress, showLoadingError,
@@ -21,11 +25,11 @@ async function init() {
   showLoading();
 
   const canvas = document.getElementById('canvas');
-  const { renderer, scene, camera } = createScene(canvas);
+  const { renderer, scene, camera, sun, sky, ambient, hemi } = createScene(canvas);
   const project = createProjection(CENTER_LAT, CENTER_LON);
 
   try {
-    // 1. Fetch buildings + named streets
+    // 1. Fetch buildings + named streets (cache-aware)
     const { buildings, streets } = await fetchCityData(OSM_BBOX, (msg, progress) => {
       setLoadingText(msg);
       setLoadingProgress(progress);
@@ -35,38 +39,65 @@ async function init() {
     setLoadingProgress(0.48);
     await tick();
 
-    // 2. Build city — three material groups (glass / concrete / brick)
+    // 2. City geometry (3 material groups, LOD for distant buildings)
     const { meshes, aabbs } = buildCity(buildings, project, (msg, progress) => {
       setLoadingText(msg);
       setLoadingProgress(progress);
     });
     for (const m of meshes) scene.add(m);
 
-    // 3. Roads, sidewalks, trees
+    // 3. Roads + sidewalks
     setLoadingText('Paving streets…');
     setLoadingProgress(0.86);
     await tick();
     for (const m of buildRoads(streets, project)) scene.add(m);
 
+    // 4. Trees + shrubs (also yields positions for collision + street lights)
     setLoadingText('Planting trees…');
     setLoadingProgress(0.89);
     await tick();
-    for (const m of buildTrees(streets, project)) scene.add(m);
+    const { meshes: treeMeshes, positions: treePositions } = buildTrees(streets, project);
+    for (const m of treeMeshes) scene.add(m);
 
-    // 4. Street name signs
+    // 5. Street name signs
     setLoadingText('Placing street signs…');
     setLoadingProgress(0.91);
     await tick();
     for (const sprite of buildStreetLabels(streets, project)) scene.add(sprite);
 
-    // 5. Collision grid
+    // 6. Collision grid — buildings + tree trunks
     setLoadingText('Building collision grid…');
     setLoadingProgress(0.93);
     await tick();
-    buildGrid(aabbs);
 
-    // 6. Player — spawn at The Bean (Cloud Gate), Millennium Park
-    const park = project(MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON);
+    const TRUNK_R = 0.3;
+    const treeAabbs = treePositions.map(({ x, z }) => ({
+      minX: x - TRUNK_R, maxX: x + TRUNK_R,
+      minZ: z - TRUNK_R, maxZ: z + TRUNK_R,
+      polygon: [
+        { x: x - TRUNK_R, z: z - TRUNK_R },
+        { x: x + TRUNK_R, z: z - TRUNK_R },
+        { x: x + TRUNK_R, z: z + TRUNK_R },
+        { x: x - TRUNK_R, z: z + TRUNK_R },
+      ],
+    }));
+    buildGrid([...aabbs, ...treeAabbs]);
+
+    // 7. Day/night cycle + street lights
+    const dayNight = createDayNight(scene, sky, sun, ambient, hemi);
+    const stride   = Math.max(1, Math.floor(treePositions.length / 22));
+    for (let i = 0; i < treePositions.length; i += stride) {
+      dayNight.addStreetLight(treePositions[i].x, treePositions[i].z);
+    }
+
+    // 8. Minimap
+    const minimap = createMinimap(streets, project);
+
+    // 9. Landmark cards
+    const landmarks = createLandmarks(project);
+
+    // 10. Player — spawn at The Bean
+    const park     = project(MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON);
     const startPos = new THREE.Vector3(park.x, PLAYER_EYE, park.z);
 
     setLoadingText('Starting…');
@@ -78,12 +109,18 @@ async function init() {
     await new Promise(r => setTimeout(r, 400));
     hideLoading();
 
-    // 6. Game loop
+    // 11. Game loop
     const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
+
       player.update(dt);
+      dayNight.update(dt);
+      minimap.update(player.pos, player.yaw);
+      landmarks.update(player.pos);
+      updateAudio(player.isMoving, dt);
+
       renderer.render(scene, camera);
     }
     animate();

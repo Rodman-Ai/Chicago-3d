@@ -21,28 +21,30 @@ export function createScene(canvas) {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  scene.add(new THREE.AmbientLight(0x404060, 1.2));
+  const ambient = new THREE.AmbientLight(0x404060, 1.2);
+  scene.add(ambient);
 
   const sun = new THREE.DirectionalLight(0xfff4e0, 2.5);
   sun.position.set(300, 500, 200);
   scene.add(sun);
 
-  scene.add(new THREE.HemisphereLight(0x87ceeb, 0x556644, 0.8));
+  const hemi = new THREE.HemisphereLight(0x87ceeb, 0x556644, 0.8);
+  scene.add(hemi);
 
   // Preetham sky
   const sky = new Sky();
   sky.scale.setScalar(450000);
   scene.add(sky);
   const su = sky.material.uniforms;
-  su.turbidity.value = 6;
-  su.rayleigh.value = 1.8;
-  su.mieCoefficient.value = 0.005;
-  su.mieDirectionalG.value = 0.85;
+  su.turbidity.value        = 6;
+  su.rayleigh.value         = 1.8;
+  su.mieCoefficient.value   = 0.005;
+  su.mieDirectionalG.value  = 0.85;
   const phi   = THREE.MathUtils.degToRad(90 - 40);
   const theta = THREE.MathUtils.degToRad(200);
   su.sunPosition.value.setFromSphericalCoords(1, phi, theta);
 
-  // Ground — asphalt texture
+  // Ground
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE),
     new THREE.MeshLambertMaterial({ map: createAsphaltTexture(WORLD_SIZE) })
@@ -50,5 +52,5 @@ export function createScene(canvas) {
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
-  return { renderer, scene, camera };
+  return { renderer, scene, camera, sun, sky, ambient, hemi };
 }

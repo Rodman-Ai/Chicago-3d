@@ -14,8 +14,9 @@ export class PlayerController {
     this.pos = startPos ? startPos.clone() : new THREE.Vector3(0, PLAYER_EYE, 10);
     this.yaw = 0;
     this.pitch = 0;
-    this.keys = { w: false, a: false, s: false, d: false };
+    this.keys = { w: false, a: false, s: false, d: false, shift: false };
     this.isLocked = false;
+    this.isMoving = false;
 
     // Touch state
     this._joy = { active: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 };
@@ -61,9 +62,11 @@ export class PlayerController {
     };
     document.addEventListener('keydown', (e) => {
       if (map[e.code]) { this.keys[map[e.code]] = true; e.preventDefault(); }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.keys.shift = true;
     });
     document.addEventListener('keyup', (e) => {
       if (map[e.code]) this.keys[map[e.code]] = false;
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.keys.shift = false;
     });
   }
 
@@ -172,9 +175,12 @@ export class PlayerController {
       if (this.keys.a) { moveX -= rgtX; moveZ -= rgtZ; }
     }
 
-    if (moveX !== 0 || moveZ !== 0) {
-      const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
-      const step = PLAYER_SPEED * dt;
+    this.isMoving = moveX !== 0 || moveZ !== 0;
+
+    if (this.isMoving) {
+      const len   = Math.sqrt(moveX * moveX + moveZ * moveZ);
+      const speed = PLAYER_SPEED * (this.keys.shift ? 2.2 : 1.0);
+      const step  = speed * dt;
       const resolved = resolveCollision(
         this.pos.x + (moveX / len) * step,
         this.pos.z + (moveZ / len) * step,

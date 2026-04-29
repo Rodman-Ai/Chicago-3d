@@ -120,5 +120,5 @@ export function buildTrees(streets, project) {
     meshes.push(shrubMesh);
   }
 
-  return meshes;
+  return { meshes, positions: trees };
 }

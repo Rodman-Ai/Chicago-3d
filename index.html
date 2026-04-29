@@ -143,6 +143,39 @@
       display: none;
     }
 
+    /* ── Landmark info card ──────────────────────────── */
+    #landmark-card {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8,14,24,0.88);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 10px;
+      padding: 13px 20px;
+      max-width: 400px;
+      width: calc(100% - 48px);
+      z-index: 80;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    #landmark-card.visible { opacity: 1; }
+    #landmark-name {
+      color: #ddeeff;
+      font-size: 0.98rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+      letter-spacing: 0.02em;
+    }
+    #landmark-fact {
+      color: #7a96b4;
+      font-size: 0.80rem;
+      line-height: 1.55;
+    }
+
     /* ── Virtual joystick ────────────────────────────── */
     #joy-base {
       position: fixed;
@@ -181,7 +214,7 @@
   <!-- Desktop -->
   <div id="crosshair"></div>
   <div id="pointer-lock-overlay">
-    <div class="prompt">Click to explore Chicago</div>
+    <div class="prompt">Click to explore Chicago<br><span style="font-size:0.75em;opacity:0.65">WASD move &nbsp;·&nbsp; Shift sprint</span></div>
   </div>
 
   <!-- Mobile / touch -->
