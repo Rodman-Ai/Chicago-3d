@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   CENTER_LAT, CENTER_LON, OSM_BBOX, PLAYER_EYE,
-  MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON,
+  SPAWN_LAT, SPAWN_LON,
 } from './config.js';
 import { createScene }        from './scene.js';
 import { createProjection }   from './geo.js';
@@ -96,9 +96,9 @@ async function init() {
     // 9. Landmark cards
     const landmarks = createLandmarks(project);
 
-    // 10. Player — spawn at The Bean
-    const park     = project(MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON);
-    const startPos = new THREE.Vector3(park.x, PLAYER_EYE, park.z);
+    // 10. Player — spawn at E Randolph & N Michigan
+    const spawn    = project(SPAWN_LAT, SPAWN_LON);
+    const startPos = new THREE.Vector3(spawn.x, PLAYER_EYE, spawn.z);
 
     setLoadingText('Starting…');
     setLoadingProgress(1.0);

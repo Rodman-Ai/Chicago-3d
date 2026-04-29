@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PLAYER_SPEED, PLAYER_EYE, PLAYER_RADIUS, MOUSE_SENSITIVITY } from './config.js';
+import { PLAYER_SPEED, PLAYER_EYE, PLAYER_RADIUS, MOUSE_SENSITIVITY, JUMP_VEL, GRAVITY } from './config.js';
 import { resolveCollision } from './collision.js';
 import { showPointerLockOverlay, hidePointerLockOverlay, showTouchUI } from './ui.js';
 
@@ -17,6 +17,14 @@ export class PlayerController {
     this.keys = { w: false, a: false, s: false, d: false, shift: false };
     this.isLocked = false;
     this.isMoving = false;
+
+    // Jump state
+    this.velY       = 0;
+    this.isGrounded = true;
+
+    // Double-tap tracking (mobile jump)
+    this._lastTapTime   = 0;
+    this._tapTouches    = {}; // id → { startX, startY, startTime }
 
     // Touch state
     this._joy = { active: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 };
@@ -63,6 +71,7 @@ export class PlayerController {
     document.addEventListener('keydown', (e) => {
       if (map[e.code]) { this.keys[map[e.code]] = true; e.preventDefault(); }
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') this.keys.shift = true;
+      if (e.code === 'Space') { e.preventDefault(); this._jump(); }
     });
     document.addEventListener('keyup', (e) => {
       if (map[e.code]) this.keys[map[e.code]] = false;
@@ -79,6 +88,9 @@ export class PlayerController {
     el.addEventListener('touchstart', (e) => {
       e.preventDefault();
       for (const t of e.changedTouches) {
+        // Track for double-tap detection
+        this._tapTouches[t.identifier] = { startX: t.clientX, startY: t.clientY, startTime: Date.now() };
+
         if (t.clientX < half() && !this._joy.active) {
           this._joy = { active: true, id: t.identifier, ox: t.clientX, oy: t.clientY, dx: 0, dy: 0 };
           this._updateJoystickDOM(t.clientX, t.clientY, 0, 0);
@@ -117,6 +129,19 @@ export class PlayerController {
     const onEnd = (e) => {
       e.preventDefault();
       for (const t of e.changedTouches) {
+        // Double-tap → jump: only counts if finger barely moved and lifted quickly
+        const tap = this._tapTouches[t.identifier];
+        if (tap) {
+          const dt  = Date.now() - tap.startTime;
+          const mov = Math.hypot(t.clientX - tap.startX, t.clientY - tap.startY);
+          if (dt < 220 && mov < 14) {
+            const now = Date.now();
+            if (now - this._lastTapTime < 320) this._jump();
+            this._lastTapTime = now;
+          }
+          delete this._tapTouches[t.identifier];
+        }
+
         if (this._joy.active && t.identifier === this._joy.id) {
           this._joy = { active: false, id: -1, ox: 0, oy: 0, dx: 0, dy: 0 };
           this._hideJoystickDOM();
@@ -190,9 +215,27 @@ export class PlayerController {
       this.pos.z = resolved.z;
     }
 
+    // Gravity + jump arc
+    if (!this.isGrounded) {
+      this.velY   += GRAVITY * dt;
+      this.pos.y  += this.velY * dt;
+      if (this.pos.y <= PLAYER_EYE) {
+        this.pos.y      = PLAYER_EYE;
+        this.velY       = 0;
+        this.isGrounded = true;
+      }
+    }
+
     this.camera.position.copy(this.pos);
     this.camera.rotation.y = this.yaw;
     this.camera.rotation.x = this.pitch;
+  }
+
+  _jump() {
+    if (this.isGrounded) {
+      this.velY       = JUMP_VEL;
+      this.isGrounded = false;
+    }
   }
 
   _clampPitch() {

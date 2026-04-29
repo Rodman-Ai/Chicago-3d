@@ -2,9 +2,9 @@
 export const CENTER_LAT = 41.8781;
 export const CENTER_LON = -87.6298;
 
-// Cloud Gate (The Bean), Millennium Park — exact player start
-export const MILLENNIUM_PARK_LAT = 41.88263;
-export const MILLENNIUM_PARK_LON = -87.62322;
+// Player spawn: E Randolph St & N Michigan Ave intersection
+export const SPAWN_LAT = 41.88435;
+export const SPAWN_LON = -87.62440;
 
 // Overpass bounding box: south, west, north, east
 export const OSM_BBOX = '41.870,-87.640,41.890,-87.618';
@@ -16,6 +16,8 @@ export const PLAYER_HEIGHT = 1.7;
 export const PLAYER_EYE = 1.6;
 export const PLAYER_RADIUS = 0.5;
 export const MOUSE_SENSITIVITY = 0.002;
+export const JUMP_VEL = 7.5;   // m/s upward on jump
+export const GRAVITY   = -22;  // m/s²
 
 // Camera
 export const FOV = 75;
