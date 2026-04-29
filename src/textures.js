@@ -171,6 +171,62 @@ export function createBrickTexture() {
   return tex;
 }
 
+// ── Road surface (1 m × 1 m tile, world-space UVs) ───────────────────────────
+export function createRoadTexture() {
+  const S = 256;
+  const canvas = makeCanvas(S, S);
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#232320';
+  ctx.fillRect(0, 0, S, S);
+
+  // Coarse aggregate
+  for (let i = 0; i < 160; i++) {
+    const x = Math.random() * S, y = Math.random() * S;
+    const v = 44 + Math.random() * 32 | 0;
+    ctx.fillStyle = `rgba(${v},${v - 2},${v - 4},0.45)`;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.random() * 2.8 + 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  addGrain(ctx, S, S, 7000, 0.13);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+// ── Sidewalk / concrete slabs (1 m × 1 m tile) ───────────────────────────────
+export function createSidewalkTexture() {
+  const S = 256;
+  const canvas = makeCanvas(S, S);
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#c1b9ae';
+  ctx.fillRect(0, 0, S, S);
+
+  addGrain(ctx, S, S, 2800, 0.07);
+
+  // Slab joint
+  ctx.strokeStyle = 'rgba(86,78,70,0.48)';
+  ctx.lineWidth = 5;
+  ctx.strokeRect(2.5, 2.5, S - 5, S - 5);
+
+  // Raised-centre highlight
+  const hl = ctx.createLinearGradient(0, 0, 0, 14);
+  hl.addColorStop(0, 'rgba(255,255,255,0.13)');
+  hl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl;
+  ctx.fillRect(8, 8, S - 16, S - 16);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
 // ── Asphalt / street surface ──────────────────────────────────────────────────
 export function createAsphaltTexture(worldSize) {
   const SIZE = 512;

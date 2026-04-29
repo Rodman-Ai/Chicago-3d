@@ -9,6 +9,8 @@ import { fetchCityData } from './osm.js';
 import { buildCity } from './buildings.js';
 import { buildGrid } from './collision.js';
 import { buildStreetLabels } from './streets.js';
+import { buildRoads } from './roads.js';
+import { buildTrees } from './trees.js';
 import { PlayerController } from './player.js';
 import {
   showLoading, hideLoading, setLoadingText,
@@ -40,19 +42,30 @@ async function init() {
     });
     for (const m of meshes) scene.add(m);
 
-    // 3. Street name signs
-    setLoadingText('Placing street signs…');
+    // 3. Roads, sidewalks, trees
+    setLoadingText('Paving streets…');
+    setLoadingProgress(0.86);
+    await tick();
+    for (const m of buildRoads(streets, project)) scene.add(m);
+
+    setLoadingText('Planting trees…');
     setLoadingProgress(0.89);
+    await tick();
+    for (const m of buildTrees(streets, project)) scene.add(m);
+
+    // 4. Street name signs
+    setLoadingText('Placing street signs…');
+    setLoadingProgress(0.91);
     await tick();
     for (const sprite of buildStreetLabels(streets, project)) scene.add(sprite);
 
-    // 4. Collision grid
+    // 5. Collision grid
     setLoadingText('Building collision grid…');
     setLoadingProgress(0.93);
     await tick();
     buildGrid(aabbs);
 
-    // 5. Player — spawn at The Bean (Cloud Gate), Millennium Park
+    // 6. Player — spawn at The Bean (Cloud Gate), Millennium Park
     const park = project(MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON);
     const startPos = new THREE.Vector3(park.x, PLAYER_EYE, park.z);
 
