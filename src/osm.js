@@ -1,5 +1,11 @@
 import { DEFAULT_LEVELS, METERS_PER_LEVEL, OVERPASS_URL } from './config.js';
 
+// Non-solid building values that produce invisible collision objects
+const SKIP_BUILDING = new Set([
+  'wall', 'roof', 'canopy', 'tent', 'ruins', 'no',
+  'entrance', 'platform', 'bridge', 'tunnel',
+]);
+
 const ROAD_TYPES = new Set([
   'primary', 'primary_link',
   'secondary', 'secondary_link',
@@ -50,6 +56,9 @@ function parseOSM(json) {
     const nodes = el.nodes.map(id => nodeMap.get(id)).filter(Boolean);
 
     if (el.tags?.building) {
+      // Skip non-solid surface features that create invisible collision
+      if (SKIP_BUILDING.has(el.tags.building)) continue;
+
       const ring = nodes.length > 1 && nodesEqual(nodes[0], nodes[nodes.length - 1])
         ? nodes.slice(0, -1)
         : nodes;

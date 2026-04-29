@@ -12,6 +12,17 @@ function buildingType(height) {
   return 'brick';
 }
 
+// Minimum footprint area in m² — filters pillars, kiosks, thin walls, etc.
+const MIN_AREA = 5;
+
+function polygonArea(pts) {
+  let a = 0;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    a += (pts[j].x + pts[i].x) * (pts[j].z - pts[i].z);
+  }
+  return Math.abs(a / 2);
+}
+
 export function buildCity(buildings, project, onProgress) {
   const groups  = { glass: [], concrete: [], brick: [] };
   const aabbs   = [];
@@ -20,12 +31,16 @@ export function buildCity(buildings, project, onProgress) {
     const { nodes, height } = buildings[i];
     const points = nodes.map(({ lat, lon }) => project(lat, lon));
 
+    // Drop tiny OSM features (pillars, kiosks, thin walls)
+    if (polygonArea(points) < MIN_AREA) continue;
+
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
     for (const p of points) {
       if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
       if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
     }
-    aabbs.push({ minX, maxX, minZ, maxZ, height });
+    // Store the actual polygon so collision can use precise edges instead of AABB
+    aabbs.push({ minX, maxX, minZ, maxZ, height, polygon: points });
 
     const shape = new THREE.Shape();
     shape.moveTo(points[0].x, points[0].z);
