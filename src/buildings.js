@@ -44,13 +44,17 @@ export function buildCity(buildings, project, onProgress) {
 
     let geo;
     if (cx * cx + cz * cz > LOD_DIST * LOD_DIST) {
-      // Far building — simple AABB box (heavily fogged at this distance)
-      const sx = Math.max(maxX - minX, 2);
-      const sz = Math.max(maxZ - minZ, 2);
-      geo = new THREE.BoxGeometry(sx, height, sz);
-      geo.translate(cx, height / 2, cz);
+      // Far: rectangular AABB footprint (still ExtrudeGeometry — must match near type for merging)
+      const rectShape = new THREE.Shape();
+      rectShape.moveTo(minX, minZ);
+      rectShape.lineTo(maxX, minZ);
+      rectShape.lineTo(maxX, maxZ);
+      rectShape.lineTo(minX, maxZ);
+      rectShape.closePath();
+      geo = new THREE.ExtrudeGeometry(rectShape, { steps: 1, depth: height, bevelEnabled: false });
+      geo.rotateX(-Math.PI / 2);
     } else {
-      // Near building — full polygon extrusion
+      // Near: full polygon extrusion
       const shape = new THREE.Shape();
       shape.moveTo(points[0].x, points[0].z);
       for (let j = 1; j < points.length; j++) shape.lineTo(points[j].x, points[j].z);
@@ -82,6 +86,7 @@ export function buildCity(buildings, project, onProgress) {
     if (geos.length === 0) continue;
     const merged = mergeGeometries(geos, false);
     for (const g of geos) g.dispose();
+    if (!merged) { console.warn(`mergeGeometries failed for ${type} group`); continue; }
     meshes.push(new THREE.Mesh(merged, materials[type]));
   }
 
