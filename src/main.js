@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { CENTER_LAT, CENTER_LON, OSM_BBOX } from './config.js';
+import { CENTER_LAT, CENTER_LON, OSM_BBOX, PLAYER_EYE, MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON } from './config.js';
 import { createScene } from './scene.js';
 import { createProjection } from './geo.js';
-import { fetchBuildings } from './osm.js';
+import { fetchCityData } from './osm.js';
 import { buildCity } from './buildings.js';
 import { buildGrid } from './collision.js';
+import { buildStreetLabels } from './streets.js';
 import { PlayerController } from './player.js';
 import {
   showLoading, hideLoading, setLoadingText,
@@ -19,47 +20,55 @@ async function init() {
   const project = createProjection(CENTER_LAT, CENTER_LON);
 
   try {
-    // 1. Fetch + parse OSM buildings
-    const buildings = await fetchBuildings(OSM_BBOX, (msg, progress) => {
+    // 1. Fetch buildings + named streets
+    const { buildings, streets } = await fetchCityData(OSM_BBOX, (msg, progress) => {
       setLoadingText(msg);
       setLoadingProgress(progress);
     });
 
-    setLoadingText(`Loaded ${buildings.length.toLocaleString()} buildings.`);
+    setLoadingText(`Loaded ${buildings.length.toLocaleString()} buildings, ${streets.length.toLocaleString()} street segments.`);
     setLoadingProgress(0.48);
-
-    // Yield to let the browser paint the progress update
     await tick();
 
-    // 2. Build geometry and collision AABBs
+    // 2. Build city geometry + collision AABBs
     const { mesh, aabbs } = buildCity(buildings, project, (msg, progress) => {
       setLoadingText(msg);
       setLoadingProgress(progress);
     });
     scene.add(mesh);
 
-    setLoadingText('Building collision grid...');
-    setLoadingProgress(0.92);
+    // 3. Street name signs
+    setLoadingText('Placing street signs...');
+    setLoadingProgress(0.89);
     await tick();
+    for (const sprite of buildStreetLabels(streets, project)) {
+      scene.add(sprite);
+    }
 
+    // 4. Collision grid
+    setLoadingText('Building collision grid...');
+    setLoadingProgress(0.93);
+    await tick();
     buildGrid(aabbs);
 
-    // 3. Setup player
+    // 5. Player — start at Millennium Park
+    const park = project(MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON);
+    const startPos = new THREE.Vector3(park.x, PLAYER_EYE, park.z);
+
     setLoadingText('Starting...');
     setLoadingProgress(1.0);
     await tick();
 
-    const player = new PlayerController(camera, canvas);
+    const player = new PlayerController(camera, canvas, startPos);
 
-    // Short pause so "100%" is visible
     await new Promise(r => setTimeout(r, 400));
     hideLoading();
 
-    // 4. Game loop
+    // 6. Game loop
     const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.1); // cap at 100ms (tab-switch protection)
+      const dt = Math.min(clock.getDelta(), 0.1);
       player.update(dt);
       renderer.render(scene, camera);
     }

@@ -7,11 +7,11 @@ const TOUCH_SENSITIVITY = 0.004;
 const JOYSTICK_MAX_R = 55; // pixels
 
 export class PlayerController {
-  constructor(camera, domElement) {
+  constructor(camera, domElement, startPos = null) {
     this.camera = camera;
     this.domElement = domElement;
 
-    this.pos = new THREE.Vector3(0, PLAYER_EYE, 10);
+    this.pos = startPos ? startPos.clone() : new THREE.Vector3(0, PLAYER_EYE, 10);
     this.yaw = 0;
     this.pitch = 0;
     this.keys = { w: false, a: false, s: false, d: false };
