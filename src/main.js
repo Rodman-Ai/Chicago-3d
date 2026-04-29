@@ -1,5 +1,8 @@
 import * as THREE from 'three';
-import { CENTER_LAT, CENTER_LON, OSM_BBOX, PLAYER_EYE, MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON } from './config.js';
+import {
+  CENTER_LAT, CENTER_LON, OSM_BBOX, PLAYER_EYE,
+  MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON,
+} from './config.js';
 import { createScene } from './scene.js';
 import { createProjection } from './geo.js';
 import { fetchCityData } from './osm.js';
@@ -30,32 +33,30 @@ async function init() {
     setLoadingProgress(0.48);
     await tick();
 
-    // 2. Build city geometry + collision AABBs
-    const { mesh, aabbs } = buildCity(buildings, project, (msg, progress) => {
+    // 2. Build city — three material groups (glass / concrete / brick)
+    const { meshes, aabbs } = buildCity(buildings, project, (msg, progress) => {
       setLoadingText(msg);
       setLoadingProgress(progress);
     });
-    scene.add(mesh);
+    for (const m of meshes) scene.add(m);
 
     // 3. Street name signs
-    setLoadingText('Placing street signs...');
+    setLoadingText('Placing street signs…');
     setLoadingProgress(0.89);
     await tick();
-    for (const sprite of buildStreetLabels(streets, project)) {
-      scene.add(sprite);
-    }
+    for (const sprite of buildStreetLabels(streets, project)) scene.add(sprite);
 
     // 4. Collision grid
-    setLoadingText('Building collision grid...');
+    setLoadingText('Building collision grid…');
     setLoadingProgress(0.93);
     await tick();
     buildGrid(aabbs);
 
-    // 5. Player — start at Millennium Park
+    // 5. Player — spawn at The Bean (Cloud Gate), Millennium Park
     const park = project(MILLENNIUM_PARK_LAT, MILLENNIUM_PARK_LON);
     const startPos = new THREE.Vector3(park.x, PLAYER_EYE, park.z);
 
-    setLoadingText('Starting...');
+    setLoadingText('Starting…');
     setLoadingProgress(1.0);
     await tick();
 

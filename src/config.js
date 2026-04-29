@@ -2,9 +2,9 @@
 export const CENTER_LAT = 41.8781;
 export const CENTER_LON = -87.6298;
 
-// Millennium Park (Cloud Gate / Bean) — player start
-export const MILLENNIUM_PARK_LAT = 41.8826;
-export const MILLENNIUM_PARK_LON = -87.6233;
+// Cloud Gate (The Bean), Millennium Park — exact player start
+export const MILLENNIUM_PARK_LAT = 41.88263;
+export const MILLENNIUM_PARK_LON = -87.62322;
 
 // Overpass bounding box: south, west, north, east
 export const OSM_BBOX = '41.870,-87.640,41.890,-87.618';

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { FOV, NEAR, FAR, WORLD_SIZE } from './config.js';
+import { createAsphaltTexture } from './textures.js';
 
 export function createScene(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -37,61 +38,17 @@ export function createScene(canvas) {
   su.rayleigh.value = 1.8;
   su.mieCoefficient.value = 0.005;
   su.mieDirectionalG.value = 0.85;
-  const phi = THREE.MathUtils.degToRad(90 - 40);
+  const phi   = THREE.MathUtils.degToRad(90 - 40);
   const theta = THREE.MathUtils.degToRad(200);
   su.sunPosition.value.setFromSphericalCoords(1, phi, theta);
 
-  // Ground with pavement texture
+  // Ground — asphalt texture
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE),
-    new THREE.MeshLambertMaterial({ map: createPavementTexture() })
+    new THREE.MeshLambertMaterial({ map: createAsphaltTexture(WORLD_SIZE) })
   );
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
   return { renderer, scene, camera };
-}
-
-function createPavementTexture() {
-  const SIZE = 512;
-  const canvas = document.createElement('canvas');
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-  const ctx = canvas.getContext('2d');
-
-  // Base asphalt
-  ctx.fillStyle = '#383838';
-  ctx.fillRect(0, 0, SIZE, SIZE);
-
-  // Subtle noise — draw many small semi-transparent dots for asphalt grain
-  for (let i = 0; i < 6000; i++) {
-    const x = Math.random() * SIZE;
-    const y = Math.random() * SIZE;
-    const r = Math.random() * 1.5;
-    const bright = Math.random() > 0.5 ? 60 : 25;
-    ctx.fillStyle = `rgba(${bright},${bright},${bright},0.15)`;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // Faint grid lines — sidewalk/pavement block seams every 2m
-  // texture covers BLOCK_SIZE meters in world space
-  const BLOCK_SIZE = 2; // meters per pavement slab
-  const REPEATS = 8;    // slabs per texture tile
-  const step = SIZE / REPEATS;
-  ctx.strokeStyle = 'rgba(80,80,80,0.35)';
-  ctx.lineWidth = 1.5;
-  for (let i = step; i < SIZE; i += step) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, SIZE); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(SIZE, i); ctx.stroke();
-  }
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  // Each texture tile = REPEATS * BLOCK_SIZE meters → repeats = world / (REPEATS*BLOCK_SIZE)
-  const worldRepeats = WORLD_SIZE / (REPEATS * BLOCK_SIZE);
-  tex.repeat.set(worldRepeats, worldRepeats);
-  return tex;
 }
