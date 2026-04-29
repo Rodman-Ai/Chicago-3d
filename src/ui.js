@@ -1,47 +1,48 @@
-const loadingScreen = () => document.getElementById('loading-screen');
-const loadingText = () => document.getElementById('loading-text');
-const loadingBarInner = () => document.getElementById('loading-bar-inner');
-const loadingError = () => document.getElementById('loading-error');
-const crosshair = () => document.getElementById('crosshair');
-const pointerLockOverlay = () => document.getElementById('pointer-lock-overlay');
-const controlsHint = () => document.getElementById('controls-hint');
+const $ = (id) => document.getElementById(id);
 
 export function showLoading() {
-  const s = loadingScreen();
+  const s = $('loading-screen');
   s.style.display = 'flex';
   s.style.opacity = '1';
   s.classList.remove('fade-out');
 }
 
 export function hideLoading() {
-  const s = loadingScreen();
+  const s = $('loading-screen');
   s.classList.add('fade-out');
-  crosshair().style.display = 'block';
-  controlsHint().style.display = 'block';
   setTimeout(() => { s.style.display = 'none'; }, 700);
 }
 
 export function setLoadingText(msg) {
-  loadingText().textContent = msg;
+  $('loading-text').textContent = msg;
 }
 
 export function setLoadingProgress(fraction) {
-  loadingBarInner().style.width = `${Math.round(fraction * 100)}%`;
+  $('loading-bar-inner').style.width = `${Math.round(fraction * 100)}%`;
 }
 
 export function showLoadingError(msg) {
-  const el = loadingError();
+  const el = $('loading-error');
   el.textContent = msg;
   el.style.display = 'block';
   setLoadingText('');
 }
 
+// Desktop pointer-lock overlay
 export function showPointerLockOverlay() {
-  pointerLockOverlay().style.display = 'flex';
-  crosshair().style.display = 'none';
+  $('pointer-lock-overlay').style.display = 'flex';
+  $('crosshair').style.display = 'none';
 }
 
 export function hidePointerLockOverlay() {
-  pointerLockOverlay().style.display = 'none';
-  crosshair().style.display = 'block';
+  $('pointer-lock-overlay').style.display = 'none';
+  $('crosshair').style.display = 'block';
+}
+
+// Touch / mobile UI
+export function showTouchUI() {
+  $('pointer-lock-overlay').style.display = 'none';
+  $('crosshair').style.display = 'none';
+  $('touch-hint').style.display = 'block';
+  $('touch-divider').style.display = 'block';
 }

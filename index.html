@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Chicago 3D</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,16 +13,20 @@
       background: #000;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     #canvas {
       position: absolute;
       top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      width: 100%; height: 100%;
       display: block;
+      touch-action: none;
     }
 
-    /* Loading screen */
+    /* ── Loading screen ───────────────────────────────── */
     #loading-screen {
       position: fixed;
       inset: 0;
@@ -32,35 +38,30 @@
       justify-content: center;
       gap: 20px;
       transition: opacity 0.6s ease;
+      padding: 20px;
     }
-
-    #loading-screen.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
+    #loading-screen.fade-out { opacity: 0; pointer-events: none; }
 
     #loading-title {
       color: #c8d8f0;
-      font-size: 2.4rem;
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
-
     #loading-text {
       color: #7090b0;
       font-size: 0.95rem;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
+      text-align: center;
     }
-
     #loading-bar-outer {
-      width: 320px;
+      width: min(320px, 80vw);
       height: 3px;
       background: #1a2535;
       border-radius: 2px;
       overflow: hidden;
     }
-
     #loading-bar-inner {
       height: 100%;
       width: 0%;
@@ -68,16 +69,16 @@
       border-radius: 2px;
       transition: width 0.3s ease;
     }
-
     #loading-error {
       color: #ff6060;
       font-size: 0.85rem;
       display: none;
-      max-width: 400px;
+      max-width: 340px;
       text-align: center;
+      line-height: 1.5;
     }
 
-    /* Crosshair */
+    /* ── Crosshair (desktop) ─────────────────────────── */
     #crosshair {
       position: fixed;
       top: 50%; left: 50%;
@@ -87,57 +88,81 @@
       z-index: 100;
       display: none;
     }
-
-    #crosshair::before,
-    #crosshair::after {
+    #crosshair::before, #crosshair::after {
       content: '';
       position: absolute;
-      background: rgba(255, 255, 255, 0.85);
+      background: rgba(255,255,255,0.85);
     }
+    #crosshair::before { width: 2px; height: 100%; left: 50%; top: 0; transform: translateX(-50%); }
+    #crosshair::after  { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); }
 
-    #crosshair::before {
-      width: 2px; height: 100%;
-      left: 50%; top: 0;
-      transform: translateX(-50%);
-    }
-
-    #crosshair::after {
-      width: 100%; height: 2px;
-      top: 50%; left: 0;
-      transform: translateY(-50%);
-    }
-
-    /* Pointer lock overlay */
+    /* ── Pointer-lock overlay (desktop) ─────────────── */
     #pointer-lock-overlay {
       position: fixed;
       inset: 0;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       z-index: 200;
-      background: rgba(0, 0, 0, 0.45);
-      display: none;
+      background: rgba(0,0,0,0.45);
     }
-
     #pointer-lock-overlay .prompt {
       color: #e0eaf8;
       font-size: 1.1rem;
       letter-spacing: 0.06em;
-      background: rgba(10, 15, 26, 0.8);
+      background: rgba(10,15,26,0.85);
       padding: 18px 36px;
       border-radius: 8px;
       border: 1px solid rgba(255,255,255,0.1);
     }
 
-    /* Controls hint */
-    #controls-hint {
+    /* ── Touch hint ──────────────────────────────────── */
+    #touch-hint {
       position: fixed;
-      bottom: 20px;
-      left: 20px;
-      color: rgba(255,255,255,0.5);
+      bottom: env(safe-area-inset-bottom, 16px);
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.45);
       font-size: 0.78rem;
-      line-height: 1.7;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
       z-index: 100;
+      display: none;
+      pointer-events: none;
+    }
+
+    /* Touch zone divider (visual guide) */
+    #touch-divider {
+      position: fixed;
+      top: 10%; bottom: 10%;
+      left: 50%;
+      width: 1px;
+      background: rgba(255,255,255,0.06);
+      pointer-events: none;
+      z-index: 50;
+      display: none;
+    }
+
+    /* ── Virtual joystick ────────────────────────────── */
+    #joy-base {
+      position: fixed;
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.04);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 60;
+      display: none;
+    }
+    #joy-knob {
+      position: fixed;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.35);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 61;
       display: none;
     }
   </style>
@@ -145,24 +170,25 @@
 <body>
   <canvas id="canvas"></canvas>
 
+  <!-- Loading -->
   <div id="loading-screen">
     <div id="loading-title">Chicago</div>
     <div id="loading-text">Initializing...</div>
-    <div id="loading-bar-outer">
-      <div id="loading-bar-inner"></div>
-    </div>
+    <div id="loading-bar-outer"><div id="loading-bar-inner"></div></div>
     <div id="loading-error"></div>
   </div>
 
+  <!-- Desktop -->
   <div id="crosshair"></div>
-
   <div id="pointer-lock-overlay">
     <div class="prompt">Click to explore Chicago</div>
   </div>
 
-  <div id="controls-hint">
-    WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; ESC — Release cursor
-  </div>
+  <!-- Mobile / touch -->
+  <div id="touch-hint">Left — Move &nbsp;·&nbsp; Right — Look</div>
+  <div id="touch-divider"></div>
+  <div id="joy-base"></div>
+  <div id="joy-knob"></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>
